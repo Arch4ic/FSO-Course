@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import personService from  './services/persons'
 import PersonForm from './components/personform';
 import Person from './components/person';
-
+import Error from './components/Error';
 import './index.css'
 
 function App() {
@@ -11,6 +11,7 @@ function App() {
   const [newName, setNewName] = useState('a new person')
   const [newNumber, setNewNumber] = useState('')
   const [newFilter,setNewFilter] = useState('')
+  const [error, setError] = useState(null)
 
   //fetching persons list
 
@@ -48,6 +49,10 @@ function App() {
           setPersons(persons.concat(returnedPerson))
           setNewName('')
           setNewNumber('')  
+      })
+      .catch(error => {
+        console.log(error.response.data)
+        setError(error.response.data)
       })
     }
   }
@@ -99,9 +104,16 @@ function App() {
     return (
       <div>
         <h2>Phonebook</h2>
-        <PersonForm newFilter={newFilter} handleFilter={handleFilter}
-        addPerson={addPerson} newName={newName} handlePersonChange={handlePersonChange}
-        newNumber={newNumber} handleNumberChange={handleNumberChange}/>
+        <PersonForm 
+          newFilter={newFilter} 
+          handleFilter={handleFilter}
+          addPerson={addPerson} 
+          newName={newName} 
+          handlePersonChange={handlePersonChange}
+          newNumber={newNumber} 
+          handleNumberChange={handleNumberChange}/>
+        <div>{error && <Error error={error.error}/> }
+        </div>
         <h3>Numbers</h3>
         <div>
           {filterShow.map(person =>
