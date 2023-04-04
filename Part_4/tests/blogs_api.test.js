@@ -1,14 +1,31 @@
 const mongoose = require('mongoose')
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
 const supertest = require('supertest')
 const helper = require('./test_helper')
 const app = require('../app')
 const api = supertest(app)
 
 const Blog = require('../models/blog')
+const User = require('../models/user')
+
+let token
 
 beforeEach(async () => {
-  await Blog.deleteMany({})
+  await User.deleteMany({})
 
+  const passwordHash = await bcrypt.hash('salasana', 10)
+  const user = new User({ username: 'user', name: 'Root User', password: passwordHash })
+
+  await user.save()
+
+  const userToken = {
+    username: user.username,
+    id: user.id
+  }
+  token = jwt.sign(userToken, process.env.SECRET)
+
+  await Blog.deleteMany({})
   let blogObject = new Blog(helper.initialBlogs[0])
   await blogObject.save()
 
@@ -58,6 +75,7 @@ describe('POST tests', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `bearer ${token}`)
       .expect(400)
   })
 
@@ -72,6 +90,7 @@ describe('POST tests', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `bearer ${token}`)
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
@@ -94,6 +113,7 @@ describe('POST tests', () => {
     const response = await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `bearer ${token}`)
 
     expect(response.body.likes).toBeDefined()
   })
@@ -108,6 +128,7 @@ describe('POST tests', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `bearer ${token}`)
       .expect(400)
 
     const blogsAtEnd = await helper.blogsInDb()
@@ -128,17 +149,12 @@ describe('DELETE tests', () => {
     const result = await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `bearer ${token}`)
     await api
       .delete(`/api/blogs/${result.body.id}`)
+      .set('Authorization', `bearer ${token}`)
       .expect(204)
   })
-
-  /*test('Wrong id gives status 400', async () => {
-    const wrongID = 123456
-    await api
-      .delete(`/api/blogs/${wrongID}`)
-      .expect(400)
-  }) */
 })
 
 describe('PUT tests', () => {
@@ -153,13 +169,32 @@ describe('PUT tests', () => {
     const result = await api
       .post('/api/blogs')
       .send(newBlog)
+      .set('Authorization', `bearer ${token}`)
     const updatedBlog = {
       likes: 10
     }
     await api
       .put(`/api/blogs/${result.body.id}`)
       .send(updatedBlog)
+      .set('Authorization', `bearer ${token}`)
       .expect(200)
+  })
+})
+describe('Token test', () => {
+  test('Expect 401 status', async () => {
+    const newBlog = {
+      title: 'auth test',
+      author: 'Joo eiköhän se oo taas minä',
+      url: 'auth.url.com',
+      likes: 20
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .set('Authorization', 'bearer bad token')
+      .expect(401)
+      .expect('Content-Type', /application\/json/)
   })
 })
 

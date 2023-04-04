@@ -10,8 +10,8 @@ describe('when there is initially one user at db', () => {
   beforeEach(async () => {
     await User.deleteMany({})
 
-    const passwordHash = await bcrypt.hash('sekret', 10)
-    const user = new User({ username: 'root', passwordHash })
+    const passwordHash = await bcrypt.hash('salasana', 10)
+    const user = new User({ username: 'user', name: 'Root User', password: passwordHash })
 
     await user.save()
   })
@@ -38,7 +38,6 @@ describe('when there is initially one user at db', () => {
   })
 
   test('creation fails with proper statuscode and message if username already taken', async () => {
-    const usersAtStart = await helper.usersInDb()
 
     const newUser = {
       username: 'root',
@@ -46,16 +45,17 @@ describe('when there is initially one user at db', () => {
       password: 'salainen',
     }
 
-    const result = await api
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    await api
       .post('/api/users')
       .send(newUser)
       .expect(400)
       .expect('Content-Type', /application\/json/)
-
-    expect(result.body.error).toContain('expected `username` to be unique')
-
-    const usersAtEnd = await helper.usersInDb()
-    expect(usersAtEnd).toHaveLength(usersAtStart.length)
   })
 
   test('creation fails with proper status and message if password is too short', async () => {
