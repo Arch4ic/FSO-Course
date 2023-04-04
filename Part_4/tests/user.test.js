@@ -57,4 +57,18 @@ describe('when there is initially one user at db', () => {
     const usersAtEnd = await helper.usersInDb()
     expect(usersAtEnd).toHaveLength(usersAtStart.length)
   })
+
+  test('creation fails with proper status and message if password is too short', async () => {
+    const newUser = {
+      username: 'Test',
+      name: 'guy',
+      password: 'se'
+    }
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+
+    expect(result.body.error).toContain('Password too short')
+  })
 })
